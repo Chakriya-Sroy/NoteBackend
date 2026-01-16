@@ -1,38 +1,35 @@
 using NoteBackend.Data;
 using NoteBackend.Repositories;
+using NoteBackend.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddControllers();
+// --- 1. SETUP SERVICES ---
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.SuppressModelStateInvalidFilter = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
-
-
-// IMPORTANT: Register Dapper Context and Repository
 builder.Services.AddSingleton<DapperContext>();
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 
-// Add CORS for Vue frontend
+// Allow Vue Frontend
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowVueFrontend",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Vue default ports
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+    options.AddPolicy("AllowVue", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
-
-// Enable CORS
-app.UseCors("AllowVueFrontend");
-
+var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    await DbHelper.SetupDatabase(connectionString);
+}
+// --- 3. CONFIGURE HTTP PIPELINE ---
+app.UseCors("AllowVue");
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

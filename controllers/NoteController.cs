@@ -30,7 +30,7 @@ namespace NoteBackend.Controllers
                 return StatusCode(500, ResponseHelper.Error($"Internal server error: {ex.Message}"));
             }
         }
-        
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Note>> GetNote(int id)
         {
@@ -59,8 +59,16 @@ namespace NoteBackend.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    var errorMessages = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+
+                    var combinedErrors = string.Join(", ", errorMessages);
+
+                    return BadRequest(ResponseHelper.Error(combinedErrors));
+
                 }
+
 
                 var note = new Note
                 {
@@ -84,9 +92,16 @@ namespace NoteBackend.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
-                }
+                    var errorMessages = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
 
+                    var combinedErrors = string.Join(", ", errorMessages);
+
+                    return BadRequest(ResponseHelper.Error(combinedErrors));
+
+                }
+                
                 var existingNote = await _noteRepository.GetNoteByIdAsync(id);
                 if (existingNote == null)
                 {

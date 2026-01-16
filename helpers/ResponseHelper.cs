@@ -1,6 +1,7 @@
 
 using NoteBackend.Models;
 namespace NoteBackend.Helpers;
+
 public static class ResponseHelper
 {
     public static ApiResponse<T> Success<T>(T data, string message = "success")
@@ -19,7 +20,7 @@ public static class ResponseHelper
         {
             Success = true,
             Message = message,
-            Data = default
+
         };
     }
 
@@ -39,7 +40,6 @@ public static class ResponseHelper
         {
             Success = false,
             Message = message,
-            Data = null
         };
     }
 }
