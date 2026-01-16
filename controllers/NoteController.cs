@@ -18,11 +18,11 @@ namespace NoteBackend.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Note>>> GetAllNotes()
+        public async Task<ActionResult<IEnumerable<Note>>> GetAllNotes([FromQuery] string? search)
         {
             try
             {
-                var notes = await _noteRepository.GetAllNotesAsync();
+                var notes = await _noteRepository.GetAllNotesAsync(search);
                 return Ok(ResponseHelper.Success(notes, "Success"));
             }
             catch (Exception ex)
@@ -30,7 +30,7 @@ namespace NoteBackend.Controllers
                 return StatusCode(500, ResponseHelper.Error($"Internal server error: {ex.Message}"));
             }
         }
-
+        
         [HttpGet("{id}")]
         public async Task<ActionResult<Note>> GetNote(int id)
         {
@@ -90,7 +90,7 @@ namespace NoteBackend.Controllers
                 var existingNote = await _noteRepository.GetNoteByIdAsync(id);
                 if (existingNote == null)
                 {
-                   return NotFound(ResponseHelper.Error($"Note with id {id} not found"));
+                    return NotFound(ResponseHelper.Error($"Note with id {id} not found"));
                 }
 
                 var note = new Note

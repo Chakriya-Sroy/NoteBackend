@@ -6,11 +6,12 @@ namespace NoteBackend.Repositories
 {
     public interface INoteRepository
     {
-        Task<IEnumerable<Note>> GetAllNotesAsync();
+        Task<IEnumerable<Note>> GetAllNotesAsync(string ?search);
         Task<Note?> GetNoteByIdAsync(int id);
         Task<Note> CreateNoteAsync(Note note);
         Task<Note?> UpdateNoteAsync(int id, Note note);
         Task<bool> DeleteNoteAsync(int id);
+
     }
 
     public class NoteRepository : INoteRepository
@@ -22,16 +23,22 @@ namespace NoteBackend.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Note>> GetAllNotesAsync()
+        public async Task<IEnumerable<Note>> GetAllNotesAsync(string ?search)
         {
-            var query = "SELECT * FROM Notes ORDER BY CreatedAt DESC";
-            // create connection 
+            var query = "SELECT * FROM Notes";
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query += " WHERE Title LIKE @search OR Content LIKE @search";
+            }
+
+            query += " ORDER BY CreatedAt DESC";
+
             using var connection = _context.CreateConnection();
-            // query
-            var notes = await connection.QueryAsync<Note>(query);
+            var notes = await connection.QueryAsync<Note>(query, new { search = $"%{search}%" });
+
             return notes;
         }
-
         public async Task<Note?> GetNoteByIdAsync(int id)
         {
             var query = "SELECT * FROM Notes WHERE Id = @Id";
