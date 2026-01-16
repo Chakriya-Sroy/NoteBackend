@@ -1,0 +1,14 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+
+# Environment
+appsettings.Development.json
+.env
+
+# OS
+.DS_Store
