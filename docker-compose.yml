@@ -1,14 +1,33 @@
+version: "3.9"
+
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: note_sql_server
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YayaNetPassw0rd"
     ports:
       - "1433:1433"
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YayaNetPassw0rd
     volumes:
       - sql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S 127.0.0.1 -U sa -P 'YayaNetPassw0rd' -Q 'SELECT 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build: .
+    container_name: note_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db  # just a simple list now
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=NoteDb;User Id=sa;Password=YayaNetPassw0rd;TrustServerCertificate=True"
 
 volumes:
   sql_data:

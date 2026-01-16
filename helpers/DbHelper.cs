@@ -10,28 +10,37 @@ namespace NoteBackend.Helpers
             var builder = new SqlConnectionStringBuilder(connectionString);
             var dbName = builder.InitialCatalog;
 
-            // Switch to master to ensure DB exists
+            // Switch to master
             builder.InitialCatalog = "master";
 
             using (var conn = new SqlConnection(builder.ConnectionString))
             {
-                await conn.ExecuteAsync($"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '{dbName}') CREATE DATABASE [{dbName}]");
+                await conn.OpenAsync();
+                await conn.ExecuteAsync($@"
+                    IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '{dbName}')
+                    CREATE DATABASE [{dbName}]
+                ");
             }
 
-            // Path to your SQL script
-            string scriptPath = Path.Combine(AppContext.BaseDirectory, "init-db.sql");
+            // Correct script path
+            string scriptPath = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "init-db.sql"
+            );
 
-            if (File.Exists(scriptPath))
+            if (!File.Exists(scriptPath))
             {
-                var script = await File.ReadAllTextAsync(scriptPath);
-
-                using var dbConn = new SqlConnection(connectionString);
-
-
-                await dbConn.ExecuteAsync("IF EXISTS (SELECT * FROM sys.objects WHERE name = 'Notes') DROP TABLE Notes");
-
-                await dbConn.ExecuteAsync(script);
+                Console.WriteLine("❌ init-db.sql NOT FOUND");
+                return;
             }
+
+            var script = await File.ReadAllTextAsync(scriptPath);
+
+            using var dbConn = new SqlConnection(connectionString);
+            await dbConn.OpenAsync();
+            await dbConn.ExecuteAsync(script);
+
+            Console.WriteLine("✅ Database & Notes table created");
         }
     }
 }

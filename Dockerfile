@@ -1,24 +1,28 @@
-FROM mcr.microsoft.com/mssql/server:2022-latest
+# ---- STAGE 1: Build ----
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-# Set environment variables
-ENV ACCEPT_EULA=Y
-ENV MSSQL_SA_PASSWORD=YayaNetPassw0rd
+# Copy everything into the build context
+COPY . .
 
-# Switch to root to ensure we can copy files
-USER root
+# Restore dependencies
+RUN dotnet restore
 
-# Create the directory and copy the script
-RUN mkdir -p /usr/config
-COPY init-db.sql /usr/config/init-db.sql
+# Publish the app to /app/publish (Release mode)
+RUN dotnet publish -c Release -o /app/publish
 
-# Give the mssql user permission to the config folder
-RUN chown -R mssql /usr/config
+# ---- STAGE 2: Runtime ----
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
 
-# Switch back to the mssql user for security
-USER mssql
+# Copy the published API from build stage
+COPY --from=build /app/publish .
 
-# Expose port
-EXPOSE 1433
+# Copy init-db.sql into /app so DbHelper can find it
+COPY --from=build /src/init-db.sql .
 
-# Start SQL Server
-CMD ["/opt/mssql/bin/sqlservr"]
+# Expose port for API
+EXPOSE 8080
+
+# Start the API when container runs
+ENTRYPOINT ["dotnet", "NoteBackend.dll"]
